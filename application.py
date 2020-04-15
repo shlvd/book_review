@@ -1,11 +1,12 @@
 import os
 
-from flask import Flask, render_template, url_for, request, session, logging, redirect, flash
+from flask import Flask, render_template, url_for, request, session, logging, redirect, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_session import Session
 from flask_login import login_required, current_user, logout_user
 from sqlalchemy import create_engine, exc
 from sqlalchemy.orm import scoped_session, sessionmaker
+import requests
 
 from models import *
 
@@ -32,16 +33,17 @@ db = scoped_session(sessionmaker(bind=engine))
 def index():
     return render_template('index.html')
 
-@app.route("/hello")
-def hello():
-    result = db.execute("SELECT * FROM users WHERE email = :e", {"e": session['user']}).fetchone()
-    return render_template('hello.html', name=result.name)
+@app.route("/profile")
+def profile():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return render_template('profile.html')
 
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
     if 'user' in session:
-        return redirect(url_for('hello'))
+        return redirect(url_for('profile'))
 
     if request.method == "POST":
         email = request.form.get("email")
@@ -52,7 +54,7 @@ def login():
             if check_password_hash(result.password, password):
                 session['user'] = email
                 session['logged_in'] = True
-                return redirect(url_for('hello'))
+                return redirect(url_for('profile'))
 
         flash('Please check your login details and try again.')
     return render_template('login.html')
@@ -60,9 +62,7 @@ def login():
 @app.route('/signup', methods=["GET", "POST"])
 def signup():
     if 'user' in session:
-        return redirect(url_for('hello'))
-
-    message = None
+        return redirect(url_for('profile'))
 
     if request.method == "POST":
         try:
@@ -76,7 +76,7 @@ def signup():
             if result.rowcount > 0:
                 session['user'] = email
                 session['logged_in'] = True
-                return redirect(url_for('hello'))
+                return redirect(url_for('profile'))
 
         except exc.IntegrityError:
             message = "Username already exists."
@@ -85,7 +85,7 @@ def signup():
             flash('Email address already exists! Please use another e-mail.')
             return render_template("signup.html")
 
-    return render_template("signup.html", message=message)
+    return render_template("signup.html")
 
 
 @app.route('/logout')
@@ -97,3 +97,53 @@ def logout():
         session['logged_in'] = False
         flash('You logged out')
     return redirect(url_for('login'))
+
+@app.route('/profile/search', methods=["GET", "POST"])
+def search():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    query = request.form.get("searchbox")
+    query = '%' + query.lower() + '%'
+    results = db.execute("SELECT * FROM books WHERE lower(title) LIKE :q OR isbn LIKE :q OR lower(author) LIKE :q", {"q": query}).fetchall()
+    return render_template("search.html", results=results)
+
+@app.route("/books_info/<string:isbn>", methods=["GET", "POST"])
+def books_info(isbn):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == "POST":
+        comment = request.form.get("comment")
+        my_rating = request.form.get("rating", None)
+        username = db.execute("SELECT * FROM users WHERE email = :q", {"q": session['user']}).fetchone()
+        book = db.execute("INSERT INTO reviews (name, isbn, comment, rating) VALUES (:a, :b, :c, :r)", {"a": username.name, "b": isbn, "c": comment, "r": my_rating})
+        db.commit()
+
+    book = db.execute("SELECT * FROM books WHERE isbn = :q", {"q": isbn}).fetchone()
+    reviews = db.execute("SELECT * FROM reviews WHERE isbn = :q1", {"q1": isbn}).fetchall()
+
+    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "YOUR_KEY", "isbns": isbn})
+    data = response.json()
+    gr_rating = (data['books'][0]['average_rating'])
+    rev_count = (data['books'][0]['reviews_count'])
+
+    return render_template("books_info.html", book_info=book, reviews=reviews, rating=gr_rating, count=rev_count)
+
+@app.route("/api/<string:isbn>")
+def api(isbn):
+    book = db.execute("SELECT * FROM books WHERE isbn = :q", {"q": isbn}).fetchone()
+
+    if book is None:
+        return jsonify({"error": "Invalid ISBN"}), 404
+
+    reviews = db.execute("SELECT * FROM reviews WHERE isbn = :q1", {"q1": book.isbn}).fetchall()
+    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "YOUR_KEY", "isbns": isbn})
+    data = response.json()['books'][0]
+
+    return jsonify({
+        "title": book.title,
+        "author": book.author,
+        "isbn": book.isbn,
+        "review_count": data['reviews_count'],
+        "average_rating": data['average_rating']
+    })

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form method="get" action="/profile">
+    <button type="submit" class="btn btn-warning btn-lg btn-block">Back to Search</button>
+</form>
+<div class="container">
+            <div  class="card text-center" style="margin: 50px auto 50px auto;">
+                <div style="justify-content: center; font-size: large; font-weight: bold;" class="card-header">Results</div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                    <tr>
+                        <th>#</th>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>ISBN</th>
+                    </tr>
+                    {% for result in results %}
+                    <tr>
+                        <td> {{ loop.index }} </td>
+                        <td>  <a style="text-decoration:underline"  href="{{ url_for('books_info', isbn=result.isbn) }}">{{ result.title }}</a></td>
+                        <td>  {{ result.author }}</td>
+                        <td> {{ result.isbn }} </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                </div>
+            </div>
+        </div>
+{% endblock %}
