@@ -1,9 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
+
 <form method="get" action="/profile">
     <button type="submit" class="btn btn-warning btn-lg btn-block">Back to Search</button>
 </form>
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+    <div class="notification is-danger">
+        {{ messages[0] }}
+    </div>
+{% endif %}
+{% endwith %}
 <div class="container">
             <div  class="card text-center" style="margin: 50px auto 50px auto;">
                 <div style="justify-content: center; font-size: large; font-weight: bold;" class="card-header">Results</div>

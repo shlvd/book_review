@@ -105,6 +105,8 @@ def search():
     query = request.form.get("searchbox")
     query = '%' + query.lower() + '%'
     results = db.execute("SELECT * FROM books WHERE lower(title) LIKE :q OR isbn LIKE :q OR lower(author) LIKE :q", {"q": query}).fetchall()
+    if results == []:
+        flash('Can"t find anything that match your query. Please, back to search and try again.')
     return render_template("search.html", results=results)
 
 @app.route("/books_info/<string:isbn>", methods=["GET", "POST"])
@@ -120,9 +122,9 @@ def books_info(isbn):
         db.commit()
 
     book = db.execute("SELECT * FROM books WHERE isbn = :q", {"q": isbn}).fetchone()
-    reviews = db.execute("SELECT * FROM reviews WHERE isbn = :q1", {"q1": isbn}).fetchall()
+    reviews = db.execute("SELECT DATE_TRUNC('second', date::timestamp) as date, name, comment, rating  FROM reviews WHERE isbn = :q1", {"q1": isbn}).fetchall()
 
-    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "YOUR_KEY", "isbns": isbn})
+    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "5yPhHPdXTJhKb03GLSerHw", "isbns": isbn})
     data = response.json()
     gr_rating = (data['books'][0]['average_rating'])
     rev_count = (data['books'][0]['reviews_count'])
@@ -137,7 +139,7 @@ def api(isbn):
         return jsonify({"error": "Invalid ISBN"}), 404
 
     reviews = db.execute("SELECT * FROM reviews WHERE isbn = :q1", {"q1": book.isbn}).fetchall()
-    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "YOUR_KEY", "isbns": isbn})
+    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "5yPhHPdXTJhKb03GLSerHw", "isbns": isbn})
     data = response.json()['books'][0]
 
     return jsonify({
