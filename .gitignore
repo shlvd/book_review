@@ -1,0 +1,3 @@
+.flaskenv
+*.pyc
+flask_session/
