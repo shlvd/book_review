@@ -124,7 +124,7 @@ def books_info(isbn):
     book = db.execute("SELECT * FROM books WHERE isbn = :q", {"q": isbn}).fetchone()
     reviews = db.execute("SELECT DATE_TRUNC('second', date::timestamp) as date, name, comment, rating  FROM reviews WHERE isbn = :q1", {"q1": isbn}).fetchall()
 
-    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "5yPhHPdXTJhKb03GLSerHw", "isbns": isbn})
+    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "YOUR_KEY", "isbns": isbn})
     data = response.json()
     gr_rating = (data['books'][0]['average_rating'])
     rev_count = (data['books'][0]['reviews_count'])
@@ -139,7 +139,7 @@ def api(isbn):
         return jsonify({"error": "Invalid ISBN"}), 404
 
     reviews = db.execute("SELECT * FROM reviews WHERE isbn = :q1", {"q1": book.isbn}).fetchall()
-    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "5yPhHPdXTJhKb03GLSerHw", "isbns": isbn})
+    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "YOUR_KEY", "isbns": isbn})
     data = response.json()['books'][0]
 
     return jsonify({
