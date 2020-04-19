@@ -9,7 +9,7 @@ CS50's Web Programming with Python and JavaScript
 * ~~discard millisecond part from timestamp~~
 * error handling
 * ~~message if search result is empty~~
-* login instead welcome page
+* ~~login instead welcome page~~
 * docs
 * config
 * form validation
