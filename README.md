@@ -11,7 +11,6 @@ CS50's Web Programming with Python and JavaScript
 * ~~message if search result is empty~~
 * ~~login instead welcome page~~
 * docs
-* config
 * form validation
 * ~~show/hide password~~
 * ~~fix resubmit problem when updating page~~
